@@ -59,15 +59,43 @@ export interface User {
 export interface AppState {
   wallets: Wallet[];
   transactions: Transaction[];
-  categories: string[];
+  categories: Map<string, Map<string, { amount: number; date: string }>>;
   recurring: RecurringTransaction[];
 }
 
 export const SUPPORTED_CURRENCIES: CurrencyCode[] = ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'HKD', 'SGD', 'KRW', 'THB', 'IDR', 'BTC', 'ETH', 'SOL'];
 
-export const DEFAULT_CATEGORIES = [
-  'Travel', 'Food', 'Housing', 'Tech', 'Crypto', 'Freelance', 'Salary', 'Transport', 'Utilities', 'Entertainment', 'Transfer', 'Subscription'
-];
+
+export const DEFAULT_CATEGORIES = new Map<
+  string,
+  Map<string, { amount: number; date: string }>
+>(
+  [
+    "Travel",
+    "Food",
+    "Housing",
+    "Tech",
+    "Crypto",
+    "Freelance",
+    "Salary",
+    "Transport",
+    "Utilities",
+    "Entertainment",
+    "Transfer",
+    "Subscription",
+  ].map((category) => [
+    category,
+    new Map([
+      [
+        "total_amount",
+        {
+          amount: 0,
+          date: "",
+        },
+      ],
+    ]),
+  ]),
+);
 
 // --- Theme Definitions ---
 

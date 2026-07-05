@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from "react-router-dom";
 import { useFinance } from '../context/FinanceContext';
 import { Button } from '../components/ui/Button';
 import { Download, Upload, Check, AlertCircle, Plus, X, Globe, Palette, Pipette, Sun, Moon, Sparkles, Wallet, ArrowRightLeft, Repeat } from 'lucide-react';
@@ -20,7 +21,8 @@ export const Settings: React.FC = () => {
   const [newCategory, setNewCategory] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const colorInputRef = useRef<HTMLInputElement>(null);
-
+  const today = new Date().toISOString().split("T")[0];
+  const navigate = useNavigate();
   const handleCopyExport = () => {
     const data = exportData();
     navigator.clipboard.writeText(data);
@@ -99,6 +101,7 @@ export const Settings: React.FC = () => {
       }
     };
 
+    const categories = DEFAULT_CATEGORIES;
     const ds = datasets[type];
     wallets.push(...ds.wallets);
     ds.tx.forEach((tx, i) => {
@@ -116,12 +119,13 @@ export const Settings: React.FC = () => {
         category: tx.category,
         description: tx.description
       });
+      categories.get(tx.category)?.set(tx.walletId, { amount: 0, date: today });
     });
 
     return JSON.stringify({
       wallets,
       transactions,
-      categories: ['Salary', 'Food', 'Housing', 'Tech', 'Crypto', 'Freelance', 'Transport', 'Utilities', 'Entertainment', 'Transfer', 'Subscription'],
+      categories: Array.from(categories.entries()).map(([category, walletMap]) => [category, Array.from(walletMap.entries())]),
       recurring: []
     });
   };
@@ -337,7 +341,7 @@ export const Settings: React.FC = () => {
             </form>
 
             <div className="flex flex-wrap gap-2">
-              {state.categories.map(cat => (
+              {Array.from(state.categories).map(([cat, walletInfo]) => (
                 <div key={cat} className="group flex items-center gap-2 bg-bg-surface-highlight border border-border px-3 py-2 text-sm font-mono text-text-secondary hover:border-border-strong hover:text-text-primary transition-colors">
                   {cat}
                   <button 
@@ -352,6 +356,68 @@ export const Settings: React.FC = () => {
             </div>
           </div>
         </section>
+
+
+        {/* Wallets */}
+        <section>
+          <div className="flex items-center gap-3 mb-8">
+            <div className="p-2 bg-accent/10">
+              <Wallet size={18} className="text-accent" />
+            </div>
+            <div>
+              <h2 className="text-xl font-sans font-semibold text-text-primary">
+                Wallet Settings
+              </h2>
+              <p className="text-text-secondary text-sm mt-0.5">
+                Configure Wallet's Category Limit
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-bg-surface border border-border p-6">
+            {state.wallets.length === 0 ? (
+              <div className="border border-border p-6 text-text-secondary">
+                No wallets available yet. Create a wallet first to set
+                per-wallet category limits.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {state.wallets.map((wallet) => (
+                  <div
+                    key={wallet.id}
+                    className="border border-border bg-bg-primary p-5 flex flex-col justify-between gap-4"
+                  >
+                    <div>
+                      <div className="font-sans text-sm font-medium text-text-primary mb-1">
+                        {wallet.name}
+                      </div>
+                      <div className="text-xs font-mono text-text-tertiary mb-3">
+                        {wallet.type} · {wallet.baseCurrency}
+                      </div>
+                      <div
+                        className="text-2xl font-mono font-semibold"
+                        style={{ color: wallet.color }}
+                      >
+                        {wallet.balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 4,
+                        })}
+                      </div>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => navigate(`/wallet/${wallet.id}/settings`)}
+                    >
+                      Configure Wallet
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
 
         {/* SAMPLE DATA */}
         <section>

@@ -17,6 +17,7 @@ import { Analytics } from './pages/Analytics';
 import { Recurring } from './pages/Recurring';
 import { WalletSwitcher } from './components/WalletSwitcher';
 import { AnimatePresence } from 'framer-motion';
+import { WalletSettings } from './pages/WalletSettings';
 
 // Navigation Tracker Component
 const NavigationTracker = () => {
@@ -94,6 +95,7 @@ const ProtectedLayout: React.FC = () => {
                       <Route path="/recurring" element={<Recurring />} />
                       <Route path="/exchange" element={<ExchangeStatus />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/wallet/:id/settings" element={<WalletSettings />} />
                       <Route path="/activity" element={<Activity />} />
                   </Routes>
               </AnimatePresence>

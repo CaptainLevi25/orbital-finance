@@ -33,6 +33,7 @@ interface FinanceContextType {
   
   addCategory: (category: string) => void;
   deleteCategory: (category: string) => void;
+  setWalletCategoryLimit: ( walletId: string, categorySettings: Map<string, { amount: number; date: string }> ) => void;
 
   // Recurring
   addRecurringTransaction: (rt: Omit<RecurringTransaction, 'id' | 'userId' | 'active' | 'lastRunDate'>) => void;
@@ -282,8 +283,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     { id: 'r1', userId: 'demo-user-id', walletId: 'w1', amount: 1200, currency: 'USD', type: 'EXPENSE', category: 'Housing', description: 'Orbital Station Rent', frequency: 'MONTHLY', startDate: today, nextDueDate: calculateNextDate(today, 'MONTHLY'), active: true }
                 ]
             };
+
+            const stateToSave = {
+              ...seedState,
+              categories: Array.from(seedState.categories.entries()).map(
+                ([category, walletMap]) => [
+                  category,
+                  Array.from(walletMap.entries()),
+                ],
+              ),
+            };
             
-            localStorage.setItem('orbital_data_demo-user-id', JSON.stringify(seedState));
+            localStorage.setItem('orbital_data_demo-user-id', JSON.stringify(stateToSave));
             console.log("Demo user seeded successfully");
         }
     };
@@ -298,7 +309,20 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (savedData) {
         try {
           const parsed = JSON.parse(savedData);
-          if (!parsed.categories) parsed.categories = DEFAULT_CATEGORIES;
+          let mappedCategory;
+          if (!parsed.categories) parsed.categories = Array.from(DEFAULT_CATEGORIES.entries()).map(
+              ([category, walletMap]) => [
+                category,
+                Array.from(walletMap.entries()),
+              ],
+            );
+          console.log("the categories are ", parsed.categories);
+          mappedCategory = new Map(
+            parsed.categories.map(([category, walletEntries]: any) => [
+              category,
+              new Map(walletEntries),
+            ]),
+          );
           if (!parsed.recurring) parsed.recurring = [];
           
           // Initial calculation
@@ -333,7 +357,18 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     if (user && state) {
       const storageKey = `orbital_data_${user.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(state));
+      localStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          ...state,
+          categories: Array.from(state.categories.entries()).map(
+            ([category, walletMap]) => [
+              category,
+              Array.from(walletMap.entries()),
+            ],
+          ),
+        }),
+      );
     }
   }, [state, user]);
 
@@ -429,12 +464,22 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newTransactions = [newTx, ...prev.transactions];
         const updatedWallets = recalculateBalances(newTransactions, prev.wallets);
         
+        const updatedwalletCategory = new Map(prev.categories);
+        if (!updatedwalletCategory.get(tx.category)?.has(wallet.id)) {
+          updatedwalletCategory
+            ?.get(tx.category)
+            ?.set(wallet.id, { amount: 0, date: tx.date });
+          updatedwalletCategory
+            ?.get(tx.category)
+            ?.set("total_amount", { amount: 0, date: tx.date });
+        }
         logActivity('TRANSACTION_CREATE', `Added ${tx.type.toLowerCase()} transaction: ${tx.description}`, `${tx.amount} ${tx.currency}`, tx.walletId);
 
         return {
             ...prev,
             transactions: newTransactions,
-            wallets: updatedWallets
+            wallets: updatedWallets,
+            categories: updatedwalletCategory,
         };
     });
   };
@@ -608,22 +653,83 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const addCategory = (category: string) => {
-      if (!state.categories.includes(category)) {
-          setState(prev => ({ ...prev, categories: [...prev.categories, category] }));
-      }
+    if (state.categories.has(category)) return;
+
+    setState((prev) => {
+      const updatedCategories = new Map(prev.categories);
+
+      updatedCategories.set(
+        category,
+        new Map([
+          [
+            "total_amount",
+            {
+              amount: 0,
+              date: new Date().toLocaleString(),
+            },
+          ],
+        ]),
+      );
+
+      return {
+        ...prev,
+        categories: updatedCategories,
+      };
+    });
   };
 
   const deleteCategory = (category: string) => {
-      setState(prev => ({ ...prev, categories: prev.categories.filter(c => c !== category) }));
+    setState((prev) => {
+      const upadtedCategory = new Map(prev.categories);
+      upadtedCategory.delete(category);
+      return {
+        ...prev,
+        categories: upadtedCategory,
+      };
+    });
+  };
+
+  const setWalletCategoryLimit = (
+    walletId: string,
+    categorySetting: Map<string, { amount: number; date: string }>,
+  ) => {
+    setState((prev) => {
+      const updatedCategory = new Map(prev.categories);
+
+      Array.from(categorySetting).map(([cat, walletInfo]) => {
+        updatedCategory
+          .get(cat)
+          ?.set(walletId, {
+            amount: walletInfo?.amount,
+            date: walletInfo?.date,
+          });
+      });
+      return {
+        ...prev,
+        categories: updatedCategory,
+      };
+    });
   };
 
   const importData = (jsonData: string): boolean => {
       try {
           const parsed = JSON.parse(jsonData);
           if (parsed.wallets && parsed.transactions) {
-              if (!parsed.categories) parsed.categories = DEFAULT_CATEGORIES;
+              let mappedCategory;
+              if (!parsed.categories) parsed.categories = Array.from(DEFAULT_CATEGORIES.entries()).map(
+                ([category, walletMap]) => [
+                  category,
+                  Array.from(walletMap.entries()),
+                ],
+              );
               if (!parsed.recurring) parsed.recurring = [];
-              setState(parsed);
+              mappedCategory = new Map(
+                parsed.categories.map(([category, walletEntries]: any) => [
+                  category,
+                  new Map(walletEntries),
+                ]),
+              );
+              setState({...parsed, categories: mappedCategory});
               logActivity('DATA_EXPORT', 'Imported data from JSON file');
               return true;
           }
@@ -657,6 +763,7 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
       transferFunds,
       addCategory,
       deleteCategory,
+      setWalletCategoryLimit,
       addRecurringTransaction,
       deleteRecurringTransaction,
       toggleRecurringTransaction,

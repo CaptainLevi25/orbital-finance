@@ -60,8 +60,8 @@ export const WalletDetails: React.FC = () => {
     if (wallet) {
         setAddCurrency(wallet.baseCurrency);
     }
-    if (state.categories.length > 0) {
-        setAddCategory(state.categories[0]);
+    if (Array.from(state.categories).length > 0) {
+        setAddCategory(Array.from(state.categories)[0][0]);
     }
   }, [wallet, state.categories]);
 
@@ -162,6 +162,30 @@ export const WalletDetails: React.FC = () => {
     setAddDescription('');
   };
 
+  const LIMIT_COLOR = (categoryInfo: { amount: number; date: string } | undefined, category: string): { width: Number; color: String } | null => {
+    if (!categoryInfo || !category) return null;
+
+    const limit = categoryInfo.amount;
+    
+    const end = new Date(categoryInfo.date);
+    const start = new Date(categoryInfo.date);
+    start.setMonth(start.getMonth() - 1);
+
+    const lastMonthTransaction = transactions.filter((t) =>t.category === category && new Date(t.date) <= end &&
+        new Date(t.date) >= start,
+    );
+    const spend = lastMonthTransaction.reduce((sum, t) => sum + t.amount, 0);
+
+    if (spend >= limit) return { width: 100, color: "#ef4444" }; //red
+    const percentage = 100 - ((limit - spend) / limit) * 100;
+
+    if (percentage <= 33)
+      return { width: percentage, color: "#22c55e" }; //green
+    else if (percentage > 33 && percentage <= 66)
+      return { width: percentage, color: "#eab308" }; //yellow
+    return { width: percentage, color: "#ef4444" }; //red
+  };
+
   const AddTransactionForm = () => (
       <form onSubmit={handleAddTransaction} className="space-y-4">
         <div className="grid grid-cols-2 border border-border">
@@ -215,9 +239,11 @@ export const WalletDetails: React.FC = () => {
             onChange={(e) => setAddCategory(e.target.value)}
             className="w-full bg-bg-surface border border-border p-3 text-text-primary font-mono focus:border-accent focus:outline-none transition-colors duration-150"
             >
-            {state.categories.map(c => (
-                <option key={c} value={c}>{c}</option>
-            ))}
+              {Array.from(state.categories).map(([cat, walletInfo]) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
             </select>
         </div>
   
@@ -483,19 +509,35 @@ export const WalletDetails: React.FC = () => {
                {/* Breakdown List */}
                <div className="lg:col-span-2 bg-bg-surface border border-border">
                    <div className="px-6 py-3 border-b border-border flex justify-between text-xs font-mono text-text-tertiary uppercase tracking-wide">
-                       <span>Category</span>
-                       <span>Amount</span>
+                      <span className="flex w-2/4">Category</span>
+                      <span className="flex justify-center  w-1/4">MAX Limit</span>
+                      <span className="flex justify-end w-1/4">Amount</span>
                    </div>
                    <div className="divide-y divide-border max-h-64 overflow-y-auto">
                        {currentChartData.map((entry, index) => {
                            const percent = totalChartValue > 0 ? ((entry.value / totalChartValue) * 100).toFixed(1) : '0.0';
+                           const categoryInfo = state.categories.get(entry.name)?.get(String(id));
+                           const battery = LIMIT_COLOR(categoryInfo, entry.name);
                            return (
                             <div key={entry.name} className="px-6 py-3 flex items-center justify-between hover:bg-bg-elevated transition-colors duration-150">
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center gap-3 w-2/4">
                                     <div className="w-2 h-2 shrink-0" style={{ backgroundColor: CHART_COLORS[index % CHART_COLORS.length] }} />
                                     <span className="text-text-primary text-sm">{entry.name}</span>
                                 </div>
-                                <div className="font-mono text-sm text-text-secondary text-right">
+                                 {battery && categoryInfo?.amount != 0 ? (
+                                  <div className="flex items-center gap-0.5 w-1/4 justify-center">
+                                    <div className="relative h-4 w-20 border border-border rounded-sm overflow-hidden">
+                                      <div className="absolute left-0 top-0 h-full transition-all duration-300" style={{width: `${Number(battery.width)}%`, backgroundColor: String(battery.color),}}/>
+                                      </div>
+                                      <span className="text-xs text-text-tertiary">{`${isNaN(Number(battery.width)) ? 0 : battery.width.toFixed(0)}%`}</span>
+                                    </div>
+                                    ) : (
+                                    <div className="text-xs text-text-tertiary flex items-center gap-0.5 w-1/4 justify-center">
+                                      No Limit
+                                    </div>
+                                    )
+                                  }
+                                <div className="font-mono text-sm text-text-secondary text-right w-1/4">
                                     <div>{entry.value.toFixed(2)} <span className="text-xs text-text-tertiary">{wallet.baseCurrency}</span></div>
                                     <div className="text-[10px] text-text-tertiary">{percent}%</div>
                                 </div>

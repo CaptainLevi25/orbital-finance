@@ -246,7 +246,7 @@ export const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = (
                     onChange={(e) => setCategory(e.target.value)}
                     className="w-full bg-bg-surface border border-border px-3 py-2.5 text-text-primary font-mono text-sm focus:border-accent focus:outline-none transition-colors cursor-pointer"
                 >
-                    {state.categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    {Array.from(state.categories).map(([cat,walletInfo]) => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
              </div>
 
