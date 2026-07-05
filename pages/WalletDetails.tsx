@@ -174,7 +174,7 @@ export const WalletDetails: React.FC = () => {
     const lastMonthTransaction = transactions.filter((t) =>t.category === category && new Date(t.date) <= end &&
         new Date(t.date) >= start,
     );
-    const spend = lastMonthTransaction.reduce((sum, t) => sum + t.amount, 0);
+    const spend = lastMonthTransaction.reduce((sum, t) => t.type === 'EXPENSE' ? sum + t.amount : sum, 0);
 
     if (spend >= limit) return { width: 100, color: "#ef4444" }; //red
     const percentage = 100 - ((limit - spend) / limit) * 100;
