@@ -316,7 +316,6 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 Array.from(walletMap.entries()),
               ],
             );
-          console.log("the categories are ", parsed.categories);
           mappedCategory = new Map(
             parsed.categories.map(([category, walletEntries]: any) => [
               category,

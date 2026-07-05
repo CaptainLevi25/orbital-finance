@@ -166,7 +166,6 @@ export const WalletSettings: React.FC = () => {
                           onWheel={(e) => e.currentTarget.blur()}
                           onChange={(e) => {
                             const value = e.target.value;
-                            console.log(value)
                             setCategorySettings((prev) => {
                               const copy = new Map(prev);
 
