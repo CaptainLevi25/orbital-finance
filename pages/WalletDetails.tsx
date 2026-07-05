@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useFinance } from '../context/FinanceContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, TrendingUp, X, Trash2, Edit, Save, PieChart as PieChartIcon, Plus, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, TrendingUp, X, Trash2, Edit, Save, PieChart as PieChartIcon, Plus, Search, Settings } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { TransactionDetailsModal } from '../components/TransactionDetailsModal';
 import { Transaction, CurrencyCode, SUPPORTED_CURRENCIES, PRESET_COLORS } from '../types';
@@ -400,6 +400,14 @@ export const WalletDetails: React.FC = () => {
               onClick={() => setIsTransferring(true)}
             >
               Transfer
+            </Button>
+            <Button
+              variant="secondary"
+              className="flex-1"
+              icon={<Settings size={16} />}
+              onClick={() => navigate(`/wallet/${id}/settings`)}
+            >
+              Settings
             </Button>
           </div>
         </div>

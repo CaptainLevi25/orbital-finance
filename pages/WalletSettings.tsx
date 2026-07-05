@@ -9,7 +9,21 @@ export const WalletSettings: React.FC = () => {
   const navigate = useNavigate();
   const { state, setWalletCategoryLimit } = useFinance();
   const wallet = state.wallets.find((w) => w.id === id);
-  console.log(state)
+
+  if (!wallet) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto min-h-screen">
+        <div className="text-center text-text-secondary">
+          <p className="text-xl font-semibold mb-4">Wallet not found</p>
+          <Button onClick={() => navigate("/settings")} variant="primary">
+            Back to Wallets
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+
   const categories = new Map(
     Array.from(state.categories).filter(([cat, walletinfo]) =>
       walletinfo.has(String(id)),
@@ -65,21 +79,8 @@ export const WalletSettings: React.FC = () => {
     });
 
     setToast({ categories: changedCategories });
-    // --- toast additions end ---
-  };
 
-  if (!wallet) {
-    return (
-      <div className="p-8 max-w-7xl mx-auto min-h-screen">
-        <div className="text-center text-text-secondary">
-          <p className="text-xl font-semibold mb-4">Wallet not found</p>
-          <Button onClick={() => navigate("/setting")} variant="primary">
-            Back to Wallets
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto pb-24">
@@ -94,7 +95,7 @@ export const WalletSettings: React.FC = () => {
               size={16}
               className="group-hover:-translate-x-0.5 transition-transform duration-150"
             />
-            <span className="text-sm font-medium">Back to Settings</span>
+            <span className="text-sm font-medium">Back</span>
           </button>
           <div className="text-lg md:text-3xl font-sans font-medium tracking-tight text-text-primary flex items-center gap-2">
             <Wallet size={24} />  {wallet.name} Settings 
